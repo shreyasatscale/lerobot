@@ -165,26 +165,38 @@ class AlohaRobotConfig(ManipulatorRobotConfig):
     # on another USB hub or PCIe card.
     cameras: dict[str, CameraConfig] = field(
         default_factory=lambda: {
-            "cam_high": IntelRealSenseCameraConfig(
-                serial_number=128422271347,
-                fps=30,
-                width=640,
-                height=480,
-            ),
-            "cam_low": IntelRealSenseCameraConfig(
-                serial_number=130322270656,
-                fps=30,
-                width=640,
-                height=480,
-            ),
+            #"cam_high": IntelRealSenseCameraConfig(
+            #    serial_number=128422271347,
+            #    fps=30,
+            #    width=640,
+            #    height=480,
+            #),
+            #"cam_low": IntelRealSenseCameraConfig(
+            #    serial_number=130322270656,
+            #    fps=30,
+            #    width=640,
+            #    height=480,
+            #),
             "cam_left_wrist": IntelRealSenseCameraConfig(
-                serial_number=218622272670,
+                serial_number=218622278132,
                 fps=30,
                 width=640,
                 height=480,
             ),
             "cam_right_wrist": IntelRealSenseCameraConfig(
-                serial_number=130322272300,
+                serial_number=218722271567,
+                fps=30,
+                width=640,
+                height=480,
+            ),
+            "cam_high": IntelRealSenseCameraConfig(
+                serial_number=332322072342,
+                fps=30,
+                width=640,
+                height=480,
+            ),
+            "cam_low": IntelRealSenseCameraConfig(
+                serial_number=332522075214,
                 fps=30,
                 width=640,
                 height=480,
@@ -538,12 +550,12 @@ class TrossenAIBimanualRobotConfig(ManipulatorRobotConfig):
         default_factory=lambda: {
             "left": TrossenArmDriverConfig(
                 # wxai
-                ip="192.168.1.3",
+                ip="192.168.1.20",
                 model="V0_LEADER",
             ),
             "right": TrossenArmDriverConfig(
                 # wxai
-                ip="192.168.1.2",
+                ip="192.168.1.10",
                 model="V0_LEADER",
             ),
         }
@@ -552,11 +564,11 @@ class TrossenAIBimanualRobotConfig(ManipulatorRobotConfig):
     follower_arms: dict[str, MotorsBusConfig] = field(
         default_factory=lambda: {
             "left": TrossenArmDriverConfig(
-                ip="192.168.1.5",
+                ip="192.168.1.21",
                 model="V0_FOLLOWER",
             ),
             "right": TrossenArmDriverConfig(
-                ip="192.168.1.4",
+                ip="192.168.1.11",
                 model = "V0_FOLLOWER",
             ),
         }
@@ -567,24 +579,36 @@ class TrossenAIBimanualRobotConfig(ManipulatorRobotConfig):
     # on another USB hub or PCIe card.
     cameras: dict[str, CameraConfig] = field(
         default_factory=lambda: {
-            "cam_high": IntelRealSenseCameraConfig(
-                serial_number=130322270184,
-                fps=30,
-                width=640,
-                height=480,
-            ),
+            # "cam_high": IntelRealSenseCameraConfig(
+            #     serial_number=130322270184,
+            #     fps=30,
+            #     width=640,
+            #     height=480,
+            # ),
             "cam_left_wrist": IntelRealSenseCameraConfig(
-                serial_number=218622274938,
+                serial_number=218622278132,
                 fps=30,
                 width=640,
                 height=480,
             ),
             "cam_right_wrist": IntelRealSenseCameraConfig(
-                serial_number=128422271347,
+                serial_number=218722271567,
                 fps=30,
                 width=640,
                 height=480,
             ),
+            "cam_high": IntelRealSenseCameraConfig(
+                serial_number=332322072342,
+                fps=30,
+                width=640,
+                height=480,
+            ),
+            "cam_low": IntelRealSenseCameraConfig(
+                serial_number=332522075214,
+                fps=30,
+                width=640,
+                height=480,
+            )
         }
     )
 
@@ -632,18 +656,30 @@ class TrossenAISoloRobotConfig(ManipulatorRobotConfig):
     # on another USB hub or PCIe card.
     cameras: dict[str, CameraConfig] = field(
         default_factory=lambda: {
-            "cam_high": IntelRealSenseCameraConfig(
-                serial_number=130322270184,
-                fps=30,
-                width=640,
-                height=480,
-            ),
             "cam_left_wrist": IntelRealSenseCameraConfig(
-                serial_number=218622274938,
+                serial_number=218622278132,
                 fps=30,
                 width=640,
                 height=480,
             ),
+            "cam_right_wrist": IntelRealSenseCameraConfig(
+                serial_number=218722271567,
+                fps=30,
+                width=640,
+                height=480,
+            ),
+            "cam_high": IntelRealSenseCameraConfig(
+                serial_number=332322072342,
+                fps=30,
+                width=640,
+                height=480,
+            ),
+            "cam_low": IntelRealSenseCameraConfig(
+                serial_number=332522075214,
+                fps=30,
+                width=640,
+                height=480,
+            )
         }
     )
 

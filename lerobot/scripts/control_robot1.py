@@ -118,6 +118,7 @@ python lerobot/scripts/control_robot.py \
 import logging
 import time
 import os
+import boto3
 import shutil
 from dataclasses import asdict
 from pprint import pformat
@@ -150,7 +151,27 @@ from lerobot.common.robot_devices.utils import busy_wait, safe_disconnect
 from lerobot.common.utils.utils import has_method, init_logging, log_say
 from lerobot.configs import parser
 
-def reorganize_videos(root_dir, recorded_episodes):
+# Whether to skip actual S3 uploads (for testing)
+DRY_RUN = True
+
+def upload_to_s3(file_name, bucket, s3_path):
+    """Upload a file to an S3 bucket"""
+    if DRY_RUN:
+        print(f"[DRY RUN] Would upload {file_name} to s3://{bucket}/{s3_path}")
+        return
+        
+    session = boto3.Session(profile_name='sales-admin')
+    s3_client = session.client("s3")
+    try:
+        s3_client.upload_file(file_name, bucket, s3_path)
+        print(f"Successfully uploaded {file_name} to s3://{bucket}/{s3_path}")
+        return True
+    except boto3.exceptions.S3UploadFailedError as e:
+        print(f"Failed to upload {file_name} to s3://{bucket}/{s3_path}")
+        print(f"Error: {str(e)}")
+        return False
+
+def reorganize_and_upload_videos(root_dir, recorded_episodes, s3_bucket="dolphin-datasets"):
     """
     Reorganize videos into the structure:
     sequence-timestamp/
@@ -160,6 +181,8 @@ def reorganize_videos(root_dir, recorded_episodes):
         ...
       episode_1/
         ...
+    
+    And upload them to S3
     """
     try:
         root_path = Path(root_dir)
@@ -168,23 +191,24 @@ def reorganize_videos(root_dir, recorded_episodes):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         sequence_name = f"sequence-{timestamp}"
         
-        # Create a proper directory for reorganized files
-        sequence_dir_path = root_path.parent / sequence_name
-        os.makedirs(sequence_dir_path, exist_ok=True)
-        print(f"Creating reorganized videos in {sequence_dir_path}")
+        # Create a temporary directory for reorganized files
+        temp_dir = root_path / "temp_for_s3"
+        os.makedirs(temp_dir, exist_ok=True)
+        sequence_dir = temp_dir / sequence_name
+        os.makedirs(sequence_dir, exist_ok=True)
         
         # Get the videos directory path
         videos_dir = root_path / "videos"
         
         if not videos_dir.exists():
             print(f"Videos directory not found at {videos_dir}")
-            return None
+            return
             
         # Find the first chunk directory (typically chunk-000)
         chunk_dirs = [d for d in videos_dir.iterdir() if d.is_dir()]
         if not chunk_dirs:
             print("No chunk directories found")
-            return None
+            return
             
         chunk_dir = chunk_dirs[0]  # Usually chunk-000
         
@@ -192,11 +216,11 @@ def reorganize_videos(root_dir, recorded_episodes):
         camera_dirs = [d for d in chunk_dir.iterdir() if d.is_dir()]
         if not camera_dirs:
             print(f"No camera directories found in {chunk_dir}")
-            return None
+            return
             
         # Create episode directories and copy videos
         for episode_idx in range(recorded_episodes):
-            episode_dir = sequence_dir_path / f"episode_{episode_idx}"
+            episode_dir = sequence_dir / f"episode_{episode_idx}"
             os.makedirs(episode_dir, exist_ok=True)
             
             for camera_dir in camera_dirs:
@@ -213,16 +237,21 @@ def reorganize_videos(root_dir, recorded_episodes):
                     # Copy to new structure with renamed file
                     dest_file = episode_dir / f"{camera_name}.mp4"
                     shutil.copy2(episode_file, dest_file)
-                    print(f"Copied {camera_name} video for episode {episode_idx}")
+                    
+                    # Upload to S3
+                    s3_path = f"videos-data-collection/{sequence_name}/episode_{episode_idx}/{camera_name}.mp4"
+                    upload_to_s3(str(dest_file), s3_bucket, s3_path)
                 else:
                     print(f"Video file not found for episode {episode_idx} in {camera_dir}")
         
-        print(f"Videos reorganized to: {sequence_dir_path}")
-        return sequence_dir_path
+        print(f"Videos reorganized and uploaded to S3 bucket '{s3_bucket}' under prefix 'videos-data-collection/{sequence_name}'")
+        
+        # Optionally clean up temp directory after upload
+        if not DRY_RUN:
+            shutil.rmtree(temp_dir)
             
     except Exception as e:
-        print(f"Error reorganizing videos: {str(e)}")
-        return None
+        print(f"Error reorganizing and uploading videos: {str(e)}")
 
 ########################################################################################
 # Control modes
@@ -400,12 +429,9 @@ def record(
     if cfg.push_to_hub:
         dataset.push_to_hub(tags=cfg.tags, private=cfg.private)
     
-    # Reorganize videos into the requested format
-    log_say("Reorganizing videos", cfg.play_sounds)
-    sequence_dir = reorganize_videos(cfg.root, recorded_episodes)
-    
-    if sequence_dir:
-        log_say(f"Videos reorganized to {sequence_dir}", cfg.play_sounds)
+    # Upload videos to S3 with the reorganized structure
+    log_say("Uploading videos to S3", cfg.play_sounds)
+    reorganize_and_upload_videos(cfg.root, recorded_episodes)
 
     log_say("Exiting", cfg.play_sounds)
     return dataset
