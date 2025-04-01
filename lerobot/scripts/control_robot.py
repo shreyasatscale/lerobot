@@ -159,6 +159,8 @@ class RecordDepthControlConfig:
     root: str = "recordings"  # Root directory for saving recordings
     num_frames: int = 3  # Number of frames to capture
     delay_between_frames: float = 1.0  # Delay between frames in seconds
+    warmup_time_s: float = 5.0  # Warmup time in seconds before starting capture
+    wait_for_key: bool = True  # Whether to wait for key press before starting capture
 
 def reorganize_videos(root_dir, recorded_episodes):
     """
@@ -480,6 +482,20 @@ def record_depth(robot: Robot, cfg: RecordDepthControlConfig):
 
     print(f"\nRecording {cfg.num_frames} frames with {len(robot.cameras)} cameras...")
     print(f"Saving to: {session_dir}")
+
+    # Warmup period
+    if cfg.warmup_time_s > 0:
+        print(f"\nWarming up for {cfg.warmup_time_s} seconds...")
+        time.sleep(cfg.warmup_time_s)
+        print("Warmup complete!")
+
+    # Wait for key press if enabled
+    if cfg.wait_for_key:
+        print("\nPress 'SPACE' to start capturing frames...")
+        while True:
+            if cv2.waitKey(1) & 0xFF == ord(' '):
+                break
+        print("Starting capture...")
 
     metadata = []
     robot_states = []
