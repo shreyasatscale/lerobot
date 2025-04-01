@@ -126,6 +126,7 @@ from datetime import datetime
 import pandas as pd
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 # from safetensors.torch import load_file, save_file
 from lerobot.common.datasets.lerobot_dataset import LeRobotDataset
@@ -527,41 +528,39 @@ def record_depth(robot: Robot, cfg: RecordDepthControlConfig):
             depth_dir = camera_dir / "depth"
             
             try:
-                # Get both RGB and depth frames
-                frames = camera.get_frames()
-                if frames is None:
+                # Get both RGB and depth frames using the correct method
+                if camera.use_depth:
+                    rgb_image, depth_image = camera.read()
+                else:
+                    rgb_image = camera.read()
+                    depth_image = None
+                
+                if rgb_image is None:
                     print(f"Warning: No frames received from {camera_name}")
                     continue
-                
-                color_frame = frames.get_color_frame()
-                depth_frame = frames.get_depth_frame()
-                
-                if not color_frame or not depth_frame:
-                    print(f"Warning: Invalid frames from {camera_name}")
-                    continue
-                
-                # Convert frames to numpy arrays
-                rgb_image = np.asanyarray(color_frame.get_data())
-                depth_image = np.asanyarray(depth_frame.get_data())
-                
-                # Create colorized depth visualization
-                colorizer = camera.colorizer
-                colorized_depth = np.asanyarray(colorizer.colorize(depth_frame).get_data())
                 
                 # Save RGB frame
                 rgb_path = rgb_dir / f"frame_{frame_idx:06d}.png"
                 cv2.imwrite(str(rgb_path), cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR))
                 frame_data[f'{camera_name}_rgb_path'] = str(rgb_path)
                 
-                # Save raw depth data as numpy array
-                depth_raw_path = depth_dir / f"frame_{frame_idx:06d}_depth.npy"
-                np.save(str(depth_raw_path), depth_image)
-                frame_data[f'{camera_name}_depth_raw_path'] = str(depth_raw_path)
-                
-                # Save colorized depth visualization
-                depth_viz_path = depth_dir / f"frame_{frame_idx:06d}_depth_viz.png"
-                cv2.imwrite(str(depth_viz_path), colorized_depth)
-                frame_data[f'{camera_name}_depth_viz_path'] = str(depth_viz_path)
+                if depth_image is not None:
+                    # Save raw depth data as numpy array
+                    depth_raw_path = depth_dir / f"frame_{frame_idx:06d}_depth.npy"
+                    np.save(str(depth_raw_path), depth_image)
+                    frame_data[f'{camera_name}_depth_raw_path'] = str(depth_raw_path)
+                    
+                    # Create colorized depth visualization using matplotlib
+                    plt.figure(figsize=(10, 10))
+                    plt.imshow(depth_image, cmap='jet')
+                    plt.colorbar()
+                    plt.axis('off')
+                    
+                    # Save colorized depth visualization
+                    depth_viz_path = depth_dir / f"frame_{frame_idx:06d}_depth_viz.png"
+                    plt.savefig(str(depth_viz_path), bbox_inches='tight', pad_inches=0)
+                    plt.close()
+                    frame_data[f'{camera_name}_depth_viz_path'] = str(depth_viz_path)
                 
                 print(f"Saved frames from {camera_name}")
                 
